@@ -35,6 +35,7 @@ class NewsLatestController: UIViewController {
         self.view.addSubview(button)
         self.view.addSubview(tableView)
         tableView.addSubview(noDataView)
+        tableView.addSubview(noNetView)
 
         button.snp.makeConstraints { (maker) in
             maker.left.equalTo(0)
@@ -53,17 +54,15 @@ class NewsLatestController: UIViewController {
     }
 
     private func setUpBinding() {
-        let viewWillAppear = rx.sentMessage(#selector(UIViewController.viewWillAppear(_:)))
-            .mapToVoid().asDriverOnErrorJustComplete()
         let fetching = tableView.refreshControl!.rx.controlEvent(.valueChanged).asDriver()
-        let input = NewsLatestViewModel.Input(buttonClick: button.rx.tap.asDriver(), fetching: Driver.merge(viewWillAppear
-            , fetching), selection: tableView.rx.itemSelected.asDriver())
+        let input = NewsLatestViewModel.Input(buttonClick: button.rx.tap.asDriver(), fetching: Driver.merge(Driver<Void>.just(()), fetching, noNetView.reloadButtonTap.asDriver()), selection: tableView.rx.itemSelected.asDriver())
         let output = viewModel.transform(input: input)
 
         output.newsList.drive(self.tableView.rx.items(dataSource: self.dataSource())).disposed(by: disposeBag)
         output.isRefreshing.drive(tableView.refreshControl!.rx.isRefreshing).disposed(by: disposeBag)
         output.loading.drive(rx.isShowLoading).disposed(by: disposeBag)
         output.noData.drive(noDataView.rx.isHidden).disposed(by: disposeBag)
+        output.error.drive(rx.errorType).disposed(by: disposeBag)
         output.selectedCell.drive(onNext: { (model) in
             print(model.title)
         }).disposed(by: disposeBag)
@@ -158,6 +157,17 @@ extension Reactive where Base: NewsLatestController {
             }
         })
     }
+    
+    var errorType: Binder<Error> {
+        return Binder(base, binding: { (vc, result) in
+            if let error = result as? MoyaErrorType, error == .unReachable, vc.viewModel.newsList.isEmpty {
+                vc.noNetView.isHidden = false
+            } else {
+                vc.noNetView.isHidden = true
+            }
+        })
+    }
+    
 }
 
 public extension UITableView {

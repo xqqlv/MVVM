@@ -19,7 +19,6 @@ public class ActivityIndicator: SharedSequenceConvertibleType {
     
     public init() {
         loading = subject.asDriver(onErrorJustReturn: false)
-            .distinctUntilChanged()
     }
     
     fileprivate func trackActivityOfObservable<O: ObservableConvertibleType>(_ source: O) -> Observable<O.E> {

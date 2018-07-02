@@ -9,6 +9,8 @@
 import Foundation
 import RxSwift
 import RxCocoa
+import RxDataSources
+import ObjectMapper
 
 final class NoDataTracker: SharedSequenceConvertibleType {
     
@@ -17,29 +19,26 @@ final class NoDataTracker: SharedSequenceConvertibleType {
     
     private let subject = PublishSubject<E>()
     private let noData: SharedSequence<SharingStrategy, Bool>
-    private var isNoData: Bool = true
     
     public init() {
         noData = subject.asDriver(onErrorJustReturn: false)
     }
     
-    fileprivate func trackNoDataOfObservable<O: ObservableConvertibleType>(_ source: O, _ isNoData: Bool) -> Observable<O.E> {
-        self.isNoData = isNoData
+    fileprivate func trackNoDataOfObservable<O: ObservableConvertibleType, T: SectionModelType>(_ source: O, _ type: T.Type) -> Observable<O.E> {
         return source.asObservable()
-            .do(onNext: { _ in
-                self.sendCompleted()
-            }, onError: { _ in
-                self.sendCompleted()
-            }, onCompleted: {
-                self.sendCompleted()
+            .do(onNext: { (value) in
+                print(value)
+                if let value = value as? [T] {
+                    self.sendCompleted(!value.isEmpty)
+                }
             }, onSubscribe: subscribed)
     }
     
     private func subscribed() {
-        subject.onNext(isNoData)
+        subject.onNext(true)
     }
     
-    private func sendCompleted() {
+    private func sendCompleted(_ isNoData: Bool) {
         subject.onNext(isNoData)
     }
     
@@ -49,8 +48,7 @@ final class NoDataTracker: SharedSequenceConvertibleType {
 }
 
 extension ObservableConvertibleType {
-    func trackNoData(_ noDataTracker: NoDataTracker, _ isNoData: Bool) -> Observable<E> {
-        print(isNoData)
-        return noDataTracker.trackNoDataOfObservable(self, isNoData)
+    func trackNoData<T: SectionModelType>(_ noDataTracker: NoDataTracker, _ type: T.Type) -> Observable<E> {
+        return noDataTracker.trackNoDataOfObservable(self, type)
     }
 }

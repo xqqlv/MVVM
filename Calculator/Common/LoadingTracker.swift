@@ -17,15 +17,12 @@ final class LoadingTracker: SharedSequenceConvertibleType {
     
     private let subject = PublishSubject<E>()
     private let loading: SharedSequence<SharingStrategy, Bool>
-    private var isShowLoading: Bool = false
     
     public init() {
         loading = subject.asDriver(onErrorJustReturn: false)
-            .distinctUntilChanged()
     }
     
     fileprivate func trackLoadingOfObservable<O: ObservableConvertibleType>(_ source: O, _ isShowLoading: Bool) -> Observable<O.E> {
-        self.isShowLoading = isShowLoading
         return source.asObservable()
             .do(onNext: { _ in
                 self.sendShowLoading(isShowLoading)
@@ -37,7 +34,7 @@ final class LoadingTracker: SharedSequenceConvertibleType {
     }
     
     private func subscribed() {
-        subject.onNext(isShowLoading)
+        subject.onNext(false)
     }
     
     private func sendShowLoading(_ isShowLoading: Bool) {

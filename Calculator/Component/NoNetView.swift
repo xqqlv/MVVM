@@ -7,6 +7,8 @@
 //
 
 import UIKit
+import RxCocoa
+import RxSwift
 
 class NoNetView: UIView {
     
@@ -49,10 +51,6 @@ class NoNetView: UIView {
         }
     }
     
-    @objc func reloadButtonClick() {
-        reloadBlock?()
-    }
-    
     private lazy var imageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(named: "no_net_icon"))
         
@@ -74,7 +72,6 @@ class NoNetView: UIView {
         button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
         button.setTitle("重新加载", for: .normal)
         button.setTitleColor(.brandBlue, for: .normal)
-        button.addTarget(self, action: #selector(reloadButtonClick), for: .touchUpInside)
         
         button.layer.masksToBounds = true
         button.layer.cornerRadius = 4
@@ -83,6 +80,11 @@ class NoNetView: UIView {
         
         return button
     }()
+    
+    lazy var reloadButtonTap: ControlEvent<()> = {
+        return self.reloadButton.rx.tap
+    }()
+    
 
 }
 

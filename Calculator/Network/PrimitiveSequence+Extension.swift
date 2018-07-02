@@ -70,6 +70,7 @@ extension PrimitiveSequence where TraitType == SingleTrait, ElementType == Respo
  错误定义
  */
 public enum MoyaErrorType: Equatable {
+    case none
     case json
     case mappable
     case notValidData
@@ -91,6 +92,8 @@ extension MoyaErrorType: Error {
             return "失败"
         case .unReachable:
             return "网络异常"
+        default:
+            return ""
         }
     }
 }

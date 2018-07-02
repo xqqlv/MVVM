@@ -24,21 +24,21 @@ class NewsLatestViewModel: ViewModelType {
         let activityIndicator = ActivityIndicator()
         let loadingTracker = LoadingTracker()
         let noDataTracker = NoDataTracker()
+        let errorTracker = ErrorTracker()
     
         let newsList = Driver.merge(input.buttonClick.map({ return true }), input.fetching.map({ return false }))
-            .flatMap { [unowned self] (isLoadMore) -> Driver<[SectionModel<String, NewsInfo>]> in
+            .flatMapLatest { [unowned self] (isLoadMore) -> Driver<[SectionModel<String, NewsInfo>]> in
                 if isLoadMore {
-                    return self.getMoreList()
-                        .trackActivity(activityIndicator)
-                        .trackNoData(noDataTracker, !self.newsList.isEmpty)
+                    return self.getMoreList().trackError(errorTracker)
                         .asDriver(onErrorJustReturn: self.newsList)
                 } else {
-                    return self.getNewsList()
-                        .trackActivity(activityIndicator)
-                        .trackNoData(noDataTracker, !self.newsList.isEmpty)
+                    return self.getNewsList().trackError(errorTracker)
                         .asDriver(onErrorJustReturn: self.newsList)
                 }
         }
+            .trackActivity(activityIndicator)
+            .trackNoData(noDataTracker, SectionModel<String, NewsInfo>.self)
+            .asDriverOnErrorJustComplete()
         
         let selectedCell = input.selection.trackLoading(loadingTracker, true)
             .map({ return self.newsList[$0.section].items[$0.row] })
@@ -48,8 +48,9 @@ class NewsLatestViewModel: ViewModelType {
         let isRefreshing = activityIndicator.asDriver()
         let loading = loadingTracker.asDriver()
         let noData = noDataTracker.asDriver()
+        let error = errorTracker.asDriver()
 
-        return Output(newsList: newsList, selectedCell: selectedCell, isRefreshing: isRefreshing, loading: loading, noData: noData)
+        return Output(newsList: newsList, selectedCell: selectedCell, isRefreshing: isRefreshing, loading: loading, noData: noData, error: error)
     }
 
     private func getNewsList() -> Single<[SectionModel<String, NewsInfo>]> {
@@ -94,5 +95,6 @@ extension NewsLatestViewModel {
         let isRefreshing: Driver<Bool>
         let loading: Driver<Bool>
         let noData: Driver<Bool>
+        let error: Driver<Error>
     }
 }
